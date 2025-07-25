@@ -1,0 +1,547 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>City Master Form</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #74ebd5, #acb6e5);
+      margin: 0;
+      padding: 40px;
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    form {
+      max-width: 800px;
+      margin: auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .form-grid label {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .form-grid input[type="text"],
+    .form-grid input[type="number"],
+    .form-grid select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .full-width { grid-column: span 2; }
+
+    .form-buttons {
+      grid-column: span 2;
+      text-align: center;
+      margin-top: 25px;
+    }
+
+    .form-buttons input {
+      padding: 10px 20px;
+      margin: 8px;
+      border: none;
+      border-radius: 6px;
+      background-color: #3f51b5;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .form-buttons input[type="reset"] { background-color: #f44336; }
+    .form-buttons input:hover { background-color: #303f9f; }
+    .form-buttons input[type="reset"]:hover { background-color: #d32f2f; }
+
+    .error-msg {
+      color: red;
+      font-size: 13px;
+      display: none;
+      margin-top: 5px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+      background-color: #fff;
+      margin: 10% auto;
+      padding: 25px;
+      border: 1px solid #888;
+      border-radius: 10px;
+      width: 50%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      position: relative;
+    }
+
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+    }
+
+    .popup-section {
+      margin-top: 25px;
+      padding-top: 15px;
+      border-top: 1px solid #ccc;
+    }
+
+    #successPopup {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #4caf50;
+      color: white;
+      text-align: center;
+      padding: 15px 0;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 1001;
+      animation: slideDown 0.4s ease-in-out;
+    }
+
+    @keyframes slideDown {
+      from { top: -50px; }
+      to { top: 0; }
+    }
+
+    select:disabled {
+      background-color: #f5f5f5;
+      color: #999;
+    }
+
+    @media (max-width: 600px) {
+      .modal-content {
+        width: 90%;
+        margin-top: 30%;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-buttons {
+        grid-column: span 1;
+      }
+
+      .full-width {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+
+<script>
+// Main form validation functions
+function validatePinInput(input) {
+  input.value = input.value.replace(/\D/g, '').slice(0, 6);
+  const valid = /^\d{6}$/.test(input.value);
+  document.getElementById("error-pin").style.display = valid ? "none" : "block";
+}
+
+function validateCityName(input) {
+  input.value = input.value.replace(/[^A-Za-z\s]/g, '');
+  const valid = /^[A-Za-z\s]+$/.test(input.value.trim());
+  document.getElementById("error-city1").style.display = valid ? "none" : "block";
+}
+
+function validateAreaName(input) {
+  input.value = input.value.replace(/[^A-Za-z\s]/g, '');
+  const valid = /^[A-Za-z\s]+$/.test(input.value.trim());
+  document.getElementById("error-newAreaInput").style.display = valid ? "none" : "block";
+}
+
+function validateAlphabeticInput(inputId, errorId) {
+  const input = document.getElementById(inputId);
+  input.value = input.value.replace(/[^A-Za-z\s]/g, '');
+  const valid = /^[A-Za-z\s]+$/.test(input.value.trim());
+  document.getElementById(errorId).style.display = valid ? "none" : "block";
+}
+
+function validateCoordinates(id, min, max, errorId) {
+  const val = parseFloat(document.getElementById(id).value);
+  const valid = !isNaN(val) && val >= min && val <= max;
+  document.getElementById(errorId).style.display = valid ? "none" : "block";
+}
+
+function validateDropdown(id, errorId) {
+  const value = document.getElementById(id).value;
+  document.getElementById(errorId).style.display = value ? "none" : "block";
+}
+
+function handleLiveValidation() {
+  validateCityName(document.getElementById("city1"));
+  validateDropdown("country1", "error-country1");
+  validateDropdown("state1", "error-state1");
+  validateDropdown("area1", "error-area1");
+  validatePinInput(document.getElementById("pin"));
+  validateCoordinates("lan", -90, 90, "error-lan");
+  validateCoordinates("lon", -180, 180, "error-lon");
+  validateDropdown("status", "error-status");
+}
+
+// Main form field dependency handling
+function handleCountryChange() {
+  const countrySelected = document.getElementById("country1").value !== "";
+  document.getElementById("state1").disabled = !countrySelected;
+  document.getElementById("state1").value = "";
+  document.getElementById("area1").value = "";
+  document.getElementById("pin").value = "";
+  document.getElementById("area1").disabled = true;
+  document.getElementById("pin").disabled = true;
+  validateDropdown("country1", "error-country1");
+}
+
+function handleStateChange() {
+  const stateSelected = document.getElementById("state1").value !== "";
+  document.getElementById("area1").disabled = !stateSelected;
+  document.getElementById("area1").value = "";
+  document.getElementById("pin").value = "";
+  document.getElementById("pin").disabled = true;
+  validateDropdown("state1", "error-state1");
+}
+
+function handleAreaChange() {
+  const areaSelected = document.getElementById("area1").value !== "";
+  document.getElementById("pin").disabled = !areaSelected;
+  document.getElementById("pin").value = "";
+  validateDropdown("area1", "error-area1");
+}
+
+// Modal functions
+function openModal(id) {
+  document.getElementById(id).style.display = "block";
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+window.onclick = function(event) {
+  ['areaModal', 'stateModal', 'countryModal'].forEach(id => {
+    const modal = document.getElementById(id);
+    if (event.target === modal) modal.style.display = "none";
+  });
+}
+
+// Area Modal cascading dropdown functions
+function handleModalCountryChange() {
+  const countrySelected = document.getElementById("modalCountry").value !== "";
+  document.getElementById("modalState").disabled = !countrySelected;
+  document.getElementById("modalCity").disabled = true;
+  document.getElementById("modalState").value = "";
+  document.getElementById("modalCity").value = "";
+}
+
+function handleModalStateChange() {
+  const stateSelected = document.getElementById("modalState").value !== "";
+  document.getElementById("modalCity").disabled = !stateSelected;
+  document.getElementById("modalCity").value = "";
+}
+
+function addAreaToDropdown() {
+  const areaInput = document.getElementById("newAreaInput");
+  const areaValue = areaInput.value.trim();
+  
+  // Validate area name
+  const valid = /^[A-Za-z\s]+$/.test(areaValue);
+  document.getElementById("error-newAreaInput").style.display = valid ? "none" : "block";
+  
+  if (!valid || areaValue === "") return;
+  
+  // Validate all required selections
+  const country = document.getElementById("modalCountry").value;
+  const state = document.getElementById("modalState").value;
+  const city = document.getElementById("modalCity").value;
+  
+  if (!country || !state || !city) {
+    alert("Please select Country, State and City before adding area");
+    return;
+  }
+  
+  // Add to main form's area dropdown
+  const areaSelect = document.getElementById("area1");
+  const exists = [...areaSelect.options].some(opt => opt.value.toLowerCase() === areaValue.toLowerCase());
+  
+  if (!exists) {
+    const option = new Option(areaValue, areaValue);
+    areaSelect.add(option);
+    areaSelect.value = areaValue;
+  }
+  
+  closeModal('areaModal');
+  areaInput.value = "";
+}
+
+function addToDropdown(modalId, inputId, selectId) {
+  const input = document.getElementById(inputId);
+  const value = input.value.trim();
+
+  const valid = /^[A-Za-z\s]+$/.test(value);
+  const errorId = "error-" + inputId;
+  document.getElementById(errorId).style.display = valid ? "none" : "block";
+
+  if (!valid || value === "") return;
+
+  const select = document.getElementById(selectId);
+  const exists = [...select.options].some(opt => opt.value.toLowerCase() === value.toLowerCase());
+  if (!exists) {
+    const option = new Option(value, value);
+    select.add(option);
+    select.value = value;
+  }
+
+  closeModal(modalId);
+  input.value = "";
+}
+
+// Form submission
+function handleSubmit(event) {
+  event.preventDefault();
+  handleLiveValidation();
+
+  // Check for any visible errors
+  const errors = document.querySelectorAll(".error-msg");
+  for (const err of errors) {
+    if (err.style.display === "block") return false;
+  }
+
+  // Show success and reset form
+  document.getElementById("successPopup").style.display = "block";
+  setTimeout(() => {
+    document.getElementById("successPopup").style.display = "none";
+    document.getElementById("cityForm").reset();
+    // Reset disabled fields
+    document.getElementById("state1").disabled = true;
+    document.getElementById("area1").disabled = true;
+    document.getElementById("pin").disabled = true;
+  }, 3000);
+  return false;
+}
+</script>
+
+<body>
+<div id="successPopup">Your Data Has Been Recorded</div>
+
+<form id="cityForm" onsubmit="return handleSubmit(event)">
+  <h1>City Master Form</h1>
+  <h2>City Details</h2>
+
+  <div class="form-grid">
+    <div class="full-width">
+      <label for="city1">City Name <span style="color:red">*</span></label>
+      <input type="text" id="city1" name="city1" required oninput="validateCityName(this)">
+      <span id="error-city1" class="error-msg">Please enter the city name (letters only)</span>
+    </div>
+
+    <div>
+      <label for="country1">Country <span style="color:red">*</span></label>
+      <select id="country1" name="country1" required onchange="handleCountryChange()">
+        <option value="">--Select--</option>
+        <option>India</option>
+        <option>USA</option>
+      </select>
+      <span id="error-country1" class="error-msg">Please select the country</span>
+    </div>
+
+    <div>
+      <label for="state1">State <span style="color:red">*</span></label>
+      <select id="state1" name="state1" required disabled onchange="handleStateChange()">
+        <option value="">--Select--</option>
+        <option>Tamilnadu</option>
+        <option>Kerala</option>
+        <option>California</option>
+        <option>Texas</option>
+      </select>
+      <span id="error-state1" class="error-msg">Please select the state</span>
+    </div>
+
+    <div>
+      <label for="area1">Area <span style="color:red">*</span></label>
+      <select id="area1" name="area1" required disabled onchange="handleAreaChange()">
+        <option value="">--Select--</option>
+        <option>Velacherry</option>
+        <option>Guindy</option>
+      </select>
+      <span id="error-area1" class="error-msg">Please select the area</span>
+    </div>
+
+    <div>
+      <label for="pin">Pin Code <span style="color:red">*</span></label>
+      <input type="text" id="pin" name="pin" maxlength="6" inputmode="numeric"
+             oninput="validatePinInput(this)" required disabled>
+      <span id="error-pin" class="error-msg">Please enter a valid 6-digit Pin Code</span>
+    </div>
+
+    <div>
+      <label for="lan">Latitude <span style="color:red">*</span></label>
+      <input type="number" id="lan" name="lan" step="any" placeholder="e.g., 12.96" oninput="validateCoordinates('lan', -90, 90, 'error-lan')" required>
+      <span id="error-lan" class="error-msg">Latitude must be between -90 and 90</span>
+    </div>
+
+    <div>
+      <label for="lon">Longitude <span style="color:red">*</span></label>
+      <input type="number" id="lon" name="lon" step="any" placeholder="e.g., 77.58" oninput="validateCoordinates('lon', -180, 180, 'error-lon')" required>
+      <span id="error-lon" class="error-msg">Longitude must be between -180 and 180</span>
+    </div>
+
+    <div>
+      <label for="status">Status <span style="color:red">*</span></label>
+      <select id="status" name="status" required>
+        <option value="Active" selected>Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+      <span id="error-status" class="error-msg">Please select status</span>
+    </div>
+
+    <div class="form-buttons" style="grid-column: span 2;">
+      <input type="button" value="Add Area" onclick="openModal('areaModal')">
+      <input type="button" value="Add State" onclick="openModal('stateModal')">
+      <input type="button" value="Add Country" onclick="openModal('countryModal')">
+    </div>
+  </div>
+
+  <div class="form-buttons">
+    <input type="submit" value="Submit">
+    <input type="reset" value="Clear" onclick="
+      document.getElementById('state1').disabled = true;
+      document.getElementById('area1').disabled = true;
+      document.getElementById('pin').disabled = true;
+    ">
+  </div>
+</form>
+
+<!-- Area Modal -->
+<div id="areaModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('areaModal')">&times;</span>
+    <fieldset class="popup-section">
+      <legend><strong>Add New Area</strong></legend>
+      
+<div class="form-grid">
+<label>Area Name <span style="color:red">*</span></label>
+        <input type="text" id="newAreaInput" placeholder="Enter area name" oninput="validateAreaName(this)">
+        <span id="error-newAreaInput" class="error-msg">Please enter a valid area name (letters only)</span>
+      
+        <label>Country <span style="color:red">*</span></label>
+        <select id="modalCountry" onchange="handleModalCountryChange()">
+          <option value="">--Select Country--</option>
+          <option>India</option>
+          <option>USA</option>
+        </select>
+        
+        <label>State <span style="color:red">*</span></label>
+        <select id="modalState" disabled onchange="handleModalStateChange()">
+          <option value="">--Select State--</option>
+          <option>Tamilnadu</option>
+          <option>Kerala</option>
+          <option>California</option>
+          <option>Texas</option>
+        </select>
+        
+        <label>City <span style="color:red">*</span></label>
+        <select id="modalCity" disabled>
+          <option value="">--Select City--</option>
+          <option>Chennai</option>
+          <option>Coimbatore</option>
+          <option>Los Angeles</option>
+          <option>Houston</option>
+        </select>
+</div>
+        
+       
+      <div class="form-buttons">
+        <input type="button" value="Save" onclick="addAreaToDropdown()">
+        <input type="reset" value="Clear" onclick="
+          document.getElementById('newAreaInput').value='';
+          document.getElementById('modalCountry').value='';
+          document.getElementById('modalState').value='';
+          document.getElementById('modalCity').value='';
+          document.getElementById('modalState').disabled=true;
+          document.getElementById('modalCity').disabled=true;
+          document.getElementById('error-newAreaInput').style.display='none';
+        ">
+      </div>
+    </fieldset>
+  </div>
+</div>
+
+<!-- State Modal -->
+<div id="stateModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('stateModal')">&times;</span>
+    <fieldset class="popup-section">
+      <legend><strong>Add New State</strong></legend>
+      <div class="form-grid">
+        <label>State Name <span style="color:red">*</span></label>
+        <input type="text" id="newStateInput" placeholder="Enter state name" oninput="validateAlphabeticInput('newStateInput', 'error-newStateInput')">
+        <span id="error-newStateInput" class="error-msg">Please enter a valid state name (letters only)</span>
+
+        <label>Country</label>
+        <select><option selected>India</option></select>
+      </div>
+      <div class="form-buttons">
+        <input type="button" value="Save" onclick="addToDropdown('stateModal','newStateInput','state1')">
+        <input type="reset" value="Clear" onclick="document.getElementById('newStateInput').value=''; document.getElementById('error-newStateInput').style.display='none';">
+      </div>
+    </fieldset>
+  </div>
+</div>
+
+<!-- Country Modal -->
+<div id="countryModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('countryModal')">&times;</span>
+    <fieldset class="popup-section">
+      <legend><strong>Add New Country</strong></legend>
+      <div class="form-grid">
+        <label>Country Name <span style="color:red">*</span></label>
+        <input type="text" id="newCountryInput" placeholder="Enter country name" oninput="validateAlphabeticInput('newCountryInput', 'error-newCountryInput')">
+        <span id="error-newCountryInput" class="error-msg">Please enter a valid country name (letters only)</span>
+      </div>
+      <div class="form-buttons">
+        <input type="button" value="Save" onclick="addToDropdown('countryModal','newCountryInput','country1')">
+        <input type="reset" value="Clear" onclick="document.getElementById('newCountryInput').value=''; document.getElementById('error-newCountryInput').style.display='none';">
+      </div>
+    </fieldset>
+  </div>
+</div>
+
+</body>
+</html>
